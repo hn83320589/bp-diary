@@ -1,10 +1,12 @@
+import SwiftData
 import SwiftUI
 
 @main
 struct BPDiaryApp: App {
     var body: some Scene {
         WindowGroup {
-            Text("血壓日記")
+            RootTabView()
         }
+        .modelContainer(for: BPMeasurement.self)
     }
 }
