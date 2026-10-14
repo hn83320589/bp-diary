@@ -39,6 +39,17 @@
                ReferencedContainer = "container:BPDiary.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "B1D1A0000000000000000070"
+               BuildableName = "BPDiaryUITests.xctest"
+               BlueprintName = "BPDiaryUITests"
+               ReferencedContainer = "container:BPDiary.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

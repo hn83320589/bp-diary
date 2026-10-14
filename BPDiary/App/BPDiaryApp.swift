@@ -3,11 +3,13 @@ import SwiftUI
 
 @main
 struct BPDiaryApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     private let container: ModelContainer
 
     init() {
         do {
-            container = try ModelContainer(for: BPMeasurement.self)
+            let configuration = ModelConfiguration(isStoredInMemoryOnly: LaunchOptions.usesInMemoryStore)
+            container = try ModelContainer(for: BPMeasurement.self, configurations: configuration)
         } catch {
             fatalError("無法開啟資料庫：\(error)")
         }

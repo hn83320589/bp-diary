@@ -12,6 +12,11 @@ enum LaunchOptions {
         return tab
     }
 
+    /// UI 測試使用記憶體資料庫，每次啟動都是乾淨的狀態。
+    static var usesInMemoryStore: Bool {
+        arguments.contains("-inMemoryStore")
+    }
+
     static var loadsSampleData: Bool {
         #if DEBUG
         arguments.contains("-loadSampleData")
