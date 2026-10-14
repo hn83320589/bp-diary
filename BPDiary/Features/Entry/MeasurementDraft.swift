@@ -25,7 +25,9 @@ struct MeasurementDraft: Equatable {
         note = measurement.note
     }
 
-    var errors: [MeasurementField: String] {
+    var errors: [MeasurementField: String] { errors(now: .now) }
+
+    func errors(now: Date) -> [MeasurementField: String] {
         var errors = MeasurementValidator.validate(
             systolic: Self.number(systolic),
             diastolic: Self.number(diastolic),
@@ -39,10 +41,15 @@ struct MeasurementDraft: Equatable {
         if let message = MeasurementValidator.validate(note: note.trimmingCharacters(in: .whitespacesAndNewlines)) {
             errors[.note] = message
         }
+        if let message = MeasurementValidator.validate(measuredAt: measuredAt, now: now) {
+            errors[.measuredAt] = message
+        }
         return errors
     }
 
-    var isValid: Bool { errors.isEmpty }
+    var isValid: Bool { isValid(now: .now) }
+
+    func isValid(now: Date) -> Bool { errors(now: now).isEmpty }
 
     var slot: TimeSlot { SlotClassifier.slot(for: measuredAt, in: timeZone) }
 

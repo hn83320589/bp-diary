@@ -72,7 +72,8 @@ extension SampleDataFactory {
     @MainActor
     static func replaceAll(in context: ModelContext, now: Date = .now, timeZone: TimeZone = .current) throws {
         try context.delete(model: BPMeasurement.self)
-        for measurement in measurements(today: LocalDay(now, in: timeZone), timeZone: timeZone) {
+        for measurement in measurements(today: LocalDay(now, in: timeZone), timeZone: timeZone)
+        where measurement.measuredAt <= now {
             context.insert(measurement)
         }
         try context.save()

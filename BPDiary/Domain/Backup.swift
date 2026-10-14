@@ -50,7 +50,7 @@ enum BackupCodec {
     }
 
     /// 解碼並逐筆驗證。任何一筆有誤就整份拒絕，呼叫端因此不會寫入部分資料。
-    static func decode(_ data: Data) throws -> BackupFile {
+    static func decode(_ data: Data, now: Date = .now) throws -> BackupFile {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom { decoder in
             let container = try decoder.singleValueContainer()
@@ -79,6 +79,9 @@ enum BackupCodec {
         for (index, record) in file.measurements.enumerated() {
             let errors = MeasurementValidator.validate(systolic: record.systolic, diastolic: record.diastolic, pulse: record.pulse)
             if let message = errors.values.sorted().first {
+                throw BackupError.invalidRecord(index: index, reason: message)
+            }
+            if let message = MeasurementValidator.validate(measuredAt: record.measuredAt, now: now) {
                 throw BackupError.invalidRecord(index: index, reason: message)
             }
             if let message = MeasurementValidator.validate(note: record.note) {

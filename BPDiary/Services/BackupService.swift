@@ -14,8 +14,8 @@ enum BackupService {
     }
 
     /// 先完整解析與驗證整份檔案，全部通過才寫入；寫入失敗則回復，既有資料不受影響。
-    static func importData(_ data: Data, into context: ModelContext) throws -> ImportResult {
-        let file = try BackupCodec.decode(data)
+    static func importData(_ data: Data, into context: ModelContext, now: Date = .now) throws -> ImportResult {
+        let file = try BackupCodec.decode(data, now: now)
         let existing = try context.fetch(FetchDescriptor<BPMeasurement>()).map(\.backupRecord)
         let plan = BackupDeduplicator.plan(incoming: file.measurements, existing: existing)
 

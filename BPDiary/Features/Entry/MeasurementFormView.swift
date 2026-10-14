@@ -37,8 +37,14 @@ struct MeasurementFormView: View {
                 }
 
                 Section {
-                    DatePicker("量測時間", selection: $draft.measuredAt)
+                    // 只能選到現在，避免轉錯滾輪選到未來；驗證時另外再擋一次。
+                    DatePicker("量測時間", selection: $draft.measuredAt, in: ...Date.now)
                         .environment(\.timeZone, draft.timeZone)
+                    if let error = draft.errors[.measuredAt] {
+                        Label(error, systemImage: "exclamationmark.circle.fill")
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                    }
                     LabeledContent("時段", value: draft.slot.displayName)
                     Picker("手臂", selection: $draft.arm) {
                         ForEach(Arm.allCases) { Text($0.displayName).tag($0) }
@@ -96,11 +102,12 @@ struct MeasurementFormView: View {
 
     /// 欄位有輸入過或按過儲存後才顯示錯誤，避免一打開就滿畫面紅字。
     private func visibleError(_ field: MeasurementField) -> String? {
-        let text: String = switch field {
-        case .systolic: draft.systolic
-        case .diastolic: draft.diastolic
-        case .pulse: draft.pulse
-        case .note: draft.note
+        let text: String
+        switch field {
+        case .systolic: text = draft.systolic
+        case .diastolic: text = draft.diastolic
+        case .pulse: text = draft.pulse
+        case .measuredAt, .note: return draft.errors[field]
         }
         guard showsErrors || !text.isEmpty else { return nil }
         return draft.errors[field]

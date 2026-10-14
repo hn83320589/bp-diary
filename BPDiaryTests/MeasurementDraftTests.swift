@@ -39,6 +39,16 @@ struct MeasurementDraftTests {
         #expect(draft.errors[.note] != nil)
     }
 
+    @Test func futureMeasuredTimeCannotBeSaved() {
+        // 情境：轉錯日期滾輪，把量測時間設成明天早上。
+        var draft = draft("120", "80", "70")
+        let now = TestSupport.date("2026-10-14 07:40:00")
+        #expect(draft.errors(now: now).isEmpty)
+        draft.measuredAt = TestSupport.date("2026-10-15 07:30:00")
+        #expect(draft.errors(now: now)[.measuredAt] != nil)
+        #expect(draft.isValid(now: now) == false)
+    }
+
     @Test func slotPreviewFollowsEditedTime() {
         var draft = draft("120", "80", "70")
         #expect(draft.slot == .morning)

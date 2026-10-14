@@ -92,6 +92,18 @@ struct BackupServiceTests {
         }
     }
 
+    @Test func futureMeasurementRejectsTheFile() throws {
+        let now = TestSupport.date("2026-10-14 08:00:00")
+        let file = BackupFile(exportedAt: now, measurements: [BackupRecord(
+            id: UUID(), systolic: 120, diastolic: 80, pulse: 70,
+            measuredAt: TestSupport.date("2026-10-15 07:30:00"), timeZone: "Asia/Taipei",
+            arm: .left, note: "", createdAt: now
+        )])
+        #expect(throws: BackupError.self) {
+            try BackupCodec.decode(try BackupCodec.encode(file), now: now)
+        }
+    }
+
     @Test func unsupportedSchemaVersionIsRejected() throws {
         let json = #"{"schemaVersion":99,"exportedAt":"2026-10-14T00:00:00.000Z","measurements":[]}"#
         #expect(throws: BackupError.unsupportedVersion(99)) {
