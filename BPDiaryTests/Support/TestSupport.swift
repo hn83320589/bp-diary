@@ -22,7 +22,8 @@ enum TestSupport {
         _ diastolic: Int,
         pulse: Int = 70,
         timeZone: TimeZone = taipei,
-        createdAt: Date? = nil
+        createdAt: Date? = nil,
+        note: String = ""
     ) -> Reading {
         let measuredAt = date(time, in: timeZone)
         return Reading(
@@ -32,7 +33,8 @@ enum TestSupport {
             pulse: pulse,
             measuredAt: measuredAt,
             timeZone: timeZone,
-            createdAt: createdAt ?? measuredAt
+            createdAt: createdAt ?? measuredAt,
+            note: note
         )
     }
 }

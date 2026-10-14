@@ -25,6 +25,9 @@ struct RootTabView: View {
             AdherenceView()
                 .tabItem { Label("722", systemImage: "square.grid.3x3.fill") }
                 .tag(AppTab.adherence)
+            ReportView()
+                .tabItem { Label("報告", systemImage: "doc.text") }
+                .tag(AppTab.report)
             SettingsView(scheduler: scheduler)
                 .tabItem { Label("設定", systemImage: "gearshape") }
                 .tag(AppTab.settings)

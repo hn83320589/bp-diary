@@ -9,6 +9,8 @@ struct Reading: Identifiable, Hashable, Sendable {
     var measuredAt: Date
     var timeZone: TimeZone
     var createdAt: Date
+    var arm: Arm = .left
+    var note: String = ""
 
     var slot: TimeSlot { SlotClassifier.slot(for: measuredAt, in: timeZone) }
     var localDay: LocalDay { SlotClassifier.localDay(for: measuredAt, in: timeZone) }

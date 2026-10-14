@@ -56,7 +56,9 @@ final class BPMeasurement {
             pulse: pulse,
             measuredAt: measuredAt,
             timeZone: timeZone,
-            createdAt: createdAt
+            createdAt: createdAt,
+            arm: arm,
+            note: note
         )
     }
 }
