@@ -15,9 +15,10 @@ struct NotificationPlannerTests {
         )
     }
 
-    @Test func defaultsToMorning0700AndEvening2000ForSevenDays() throws {
+    @Test func defaultsToMorning0700AndEvening2000ForThirtyDays() throws {
         let reminders = plan([], now: "2026-10-14 06:00:00")
-        #expect(reminders.count == 14)
+        #expect(reminders.count == 60)
+        #expect(reminders.last?.day == today.adding(days: 29))
         let first = try #require(reminders.first)
         #expect(first.day == today)
         #expect(first.slot == .morning)
@@ -45,7 +46,14 @@ struct NotificationPlannerTests {
     @Test func pastReminderTimesAreNotScheduled() {
         let reminders = plan([], now: "2026-10-14 07:00:00")
         #expect(!reminders.contains { $0.day == today && $0.slot == .morning })
-        #expect(reminders.count == 13)
+        #expect(reminders.count == 59)
+    }
+
+    @Test func neverExceedsTheSystemPendingNotificationLimit() {
+        // iOS 每個 App 最多保留 64 則待發的本地通知，超過的會被系統丟掉。
+        let reminders = plan([], now: "2026-10-14 00:00:00")
+        #expect(NotificationPlanner.daysAhead * TimeSlot.tracked.count <= NotificationPlanner.systemPendingLimit)
+        #expect(reminders.count <= NotificationPlanner.systemPendingLimit)
     }
 
     @Test func customTimesAreUsed() {
@@ -98,7 +106,7 @@ struct ReminderSchedulerTests {
         #expect(!center.added.contains("reminder-stale"))
         #expect(!center.added.contains("reminder-2026-10-14-morning"))
         #expect(center.added.contains("reminder-2026-10-14-evening"))
-        #expect(center.added.count == 13)
+        #expect(center.added.count == 59)
     }
 
     @Test func overlappingReschedulesEndWithTheLatestPlan() async throws {
@@ -115,7 +123,7 @@ struct ReminderSchedulerTests {
         try await newer.value
 
         #expect(!center.added.contains("reminder-2026-10-14-morning"))
-        #expect(center.added.count == 13)
+        #expect(center.added.count == 59)
     }
 
     @Test func requestingPermissionBumpsAuthorizationVersion() async {

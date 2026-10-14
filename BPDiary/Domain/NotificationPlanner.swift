@@ -19,11 +19,15 @@ struct PlannedReminder: Equatable, Sendable {
 
 /// 決定未來幾天哪些時段需要提醒。
 ///
-/// 系統的重複通知無法「只跳過某一天」，因此改為排定未來 7 天的單次通知，
+/// 系統的重複通知無法「只跳過某一天」，因此改為排定未來 30 天的單次通知，
 /// 並在資料或設定變動時整批重排；當天該時段已有兩筆就不排。
+/// 30 天 × 2 時段 = 60 則，在系統上限 64 則內，且涵蓋回診前兩週的量測期；
+/// 病人連續多天沒開 App 時仍會持續收到提醒。
 enum NotificationPlanner {
     static let identifierPrefix = "reminder-"
-    static let daysAhead = 7
+    static let daysAhead = 30
+    /// iOS 每個 App 最多保留的待發本地通知數。
+    static let systemPendingLimit = 64
 
     static func plan(
         readings: [Reading],
