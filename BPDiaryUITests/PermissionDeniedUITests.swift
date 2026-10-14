@@ -12,11 +12,7 @@ final class PermissionDeniedUITests: XCTestCase {
         app.launchArguments = ["-inMemoryStore", "-initialTab", "settings"]
         app.launch()
 
-        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        let deny = springboard.buttons["不允許"]
-        if deny.waitForExistence(timeout: 5) {
-            deny.tap()
-        }
+        denyNotificationPermissionIfAsked(timeout: 5)
 
         XCTAssertTrue(app.staticTexts["通知權限已關閉"].waitForExistence(timeout: 5), "設定頁應顯示權限提示")
         XCTAssertTrue(app.buttons["前往系統設定"].exists)
@@ -35,7 +31,7 @@ final class PermissionDeniedUITests: XCTestCase {
         let app = XCUIApplication()
         app.launchArguments = ["-inMemoryStore", "-initialTab", "list"]
         app.launch()
-        dismissNotificationAlertIfPresent()
+        denyNotificationPermissionIfAsked()
 
         app.navigationBars.buttons["新增量測"].tap()
         enter("120", into: "收縮壓", app: app)
@@ -51,11 +47,5 @@ final class PermissionDeniedUITests: XCTestCase {
         let textField = app.textFields[field]
         textField.tap()
         textField.typeText(text)
-    }
-
-    private func dismissNotificationAlertIfPresent() {
-        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-        let deny = springboard.buttons["不允許"]
-        if deny.waitForExistence(timeout: 3) { deny.tap() }
     }
 }
