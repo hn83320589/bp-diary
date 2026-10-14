@@ -21,6 +21,7 @@
 | `-loadSampleData` | 啟動時清除資料並載入範例資料 |
 | `-initialTab list\|trend\|adherence\|report\|settings` | 指定啟動時的分頁 |
 | `-inMemoryStore` | 使用記憶體資料庫（UI 測試用） |
+| `-postDayChangeAfter <秒>` | 啟動後指定秒數發出換日事件，模擬 App 開著跨過午夜（限 Debug，UI 測試用） |
 
 ## 測試
 
@@ -29,8 +30,8 @@ xcodebuild test -project BPDiary.xcodeproj -scheme BPDiary \
   -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
-- **單元測試**（Swift Testing）：60 個，位於 `BPDiaryTests/`。其中 `SampleReportExportTests` 平時會略過，只在產生範例 PDF 時執行。
-- **UI 測試**（XCTest）：5 個，位於 `BPDiaryUITests/`。涵蓋：拒絕通知權限後仍可使用、不合理數值無法儲存、刪除前需確認、把時間從早上改到晚上後各畫面更新、PDF 經分享選單存到「檔案」。
+- **單元測試**（Swift Testing）：64 個，位於 `BPDiaryTests/`。其中 `SampleReportExportTests` 平時會略過，只在產生範例 PDF 時執行。
+- **UI 測試**（XCTest）：6 個，位於 `BPDiaryUITests/`。涵蓋：拒絕通知權限後仍可使用、不合理數值無法儲存、刪除前需確認、把時間從早上改到晚上後各畫面更新、PDF 經分享選單存到「檔案」、跨過午夜時正在填的表單不會被關閉。
   執行前請先移除模擬器上的 App，讓系統重新詢問通知權限：`xcrun simctl uninstall booted com.example.bpdiary`。
 - 完整測試結果見 [`docs/TEST_REPORT.md`](docs/TEST_REPORT.md)。
 

@@ -4,11 +4,11 @@ import SwiftUI
 
 struct TrendView: View {
     @Query private var measurements: [BPMeasurement]
+    @Environment(\.today) private var today
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                let today = LocalDay(.now, in: .current)
                 let points = TrendBuilder.points(from: measurements.map(\.reading), today: today)
                 VStack(alignment: .leading, spacing: 16) {
                     if points.isEmpty {

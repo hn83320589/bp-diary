@@ -3,13 +3,14 @@ import SwiftUI
 
 struct AdherenceView: View {
     @Query private var measurements: [BPMeasurement]
+    @Environment(\.today) private var today
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 let grid = AdherenceCalculator.grid(
                     for: measurements.map(\.reading),
-                    today: LocalDay(.now, in: .current)
+                    today: today
                 )
                 VStack(alignment: .leading, spacing: 20) {
                     VStack(alignment: .leading, spacing: 4) {

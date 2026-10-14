@@ -88,3 +88,32 @@ final class FeatureFlowUITests: XCTestCase {
         hourWheel.adjust(toPickerWheelValue: hour)
     }
 }
+
+final class DayChangeUITests: XCTestCase {
+    override func setUp() {
+        continueAfterFailure = false
+    }
+
+    /// 23:59 開始輸入、00:00 還沒按儲存：跨日不可關閉表單或清掉已輸入的資料。
+    func testDayChangeKeepsOpenFormAndTypedValues() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-inMemoryStore", "-initialTab", "list", "-postDayChangeAfter", "8"]
+        app.launch()
+        denyNotificationPermissionIfAsked()
+
+        app.navigationBars.buttons["新增量測"].tap()
+        let systolic = app.textFields["收縮壓"]
+        XCTAssertTrue(systolic.waitForExistence(timeout: 3))
+        systolic.tap()
+        systolic.typeText("128")
+
+        // 等換日事件發生（啟動後 8 秒），再多留一點時間讓畫面更新。
+        let deadline = Date.now.addingTimeInterval(10)
+        while Date.now < deadline {
+            RunLoop.current.run(until: Date.now.addingTimeInterval(0.5))
+        }
+
+        XCTAssertTrue(app.navigationBars["新增量測"].exists, "跨日後表單不應被關閉")
+        XCTAssertEqual(app.textFields["收縮壓"].value as? String, "128", "跨日後已輸入的數值不應消失")
+    }
+}

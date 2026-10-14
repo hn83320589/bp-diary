@@ -9,8 +9,9 @@ enum AppTab: String {
 struct RootTabView: View {
     @State private var selection: AppTab = LaunchOptions.initialTab
     @State private var scheduler = ReminderScheduler()
-    /// 跨過午夜時更換，讓「今天」相關的畫面（722、趨勢、報告預設區間）重新計算。
-    @State private var dayToken = Date.now
+    /// 跨過午夜時更新，透過 Environment 傳給需要「今天」的畫面。
+    /// 不用 `.id(_:)` 重建整個畫面，以免關閉正在填寫的表單、重設報告選好的區間。
+    @State private var today = LocalDay(.now, in: .current)
 
     @Query private var measurements: [BPMeasurement]
     @Environment(\.scenePhase) private var scenePhase
@@ -35,12 +36,24 @@ struct RootTabView: View {
                 .tabItem { Label("設定", systemImage: "gearshape") }
                 .tag(AppTab.settings)
         }
-        .id(dayToken)
+        .environment(\.today, today)
         .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged).receive(on: RunLoop.main)) { _ in
-            dayToken = .now
+            refreshToday()
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active { refreshToday() }
         }
         .task {
             await scheduler.requestAuthorizationIfNeeded()
+        }
+        .task {
+            guard let delay = LaunchOptions.dayChangeDelay else { return }
+            do {
+                try await Task.sleep(for: delay)
+            } catch {
+                return // 畫面已消失，不需要模擬換日
+            }
+            NotificationCenter.default.post(name: .NSCalendarDayChanged, object: nil)
         }
         // 資料、提醒設定或回到前景（可能跨日、可能改了權限）時重排提醒。
         .task(id: ReminderTrigger(
@@ -49,7 +62,7 @@ struct RootTabView: View {
             eveningMinutes: eveningMinutes,
             isActive: scenePhase == .active,
             authorizationVersion: scheduler.authorizationVersion,
-            day: dayToken
+            today: today
         )) {
             guard scenePhase == .active else { return }
             await scheduler.rescheduleLoggingErrors(
@@ -60,11 +73,18 @@ struct RootTabView: View {
     }
 }
 
+extension RootTabView {
+    private func refreshToday() {
+        let current = LocalDay(.now, in: .current)
+        if current != today { today = current }
+    }
+}
+
 private struct ReminderTrigger: Hashable {
     let readings: [Reading]
     let morningMinutes: Int
     let eveningMinutes: Int
     let isActive: Bool
     let authorizationVersion: Int
-    let day: Date
+    let today: LocalDay
 }
