@@ -4,19 +4,23 @@
 |---|---|
 | 測試日期 | 2026-10-14 |
 | 受測版本 | `main` 分支，本報告所在的 commit |
-| 結果 | **通過**：65 個測試，64 個通過、1 個依設計略過、0 個失敗；Debug 與 Release 建置皆成功，無編譯警告 |
+| 結果 | **通過**：70 個測試，69 個通過、1 個依設計略過、0 個失敗；Debug 與 Release 建置皆成功，無編譯警告 |
 
 ## 1. 摘要
 
 依照題目的功能需求與驗收標準，做了五類檢查：
 
-1. **單元測試**（Swift Testing）：60 個測試函式，其中 2 個是參數化測試，共 17 組輸入。
-2. **UI 測試**（XCTest）：5 個，在真實的 App 畫面上操作。
+1. **單元測試**（Swift Testing）：64 個測試函式，其中 2 個是參數化測試，共 17 組輸入。
+2. **UI 測試**（XCTest）：6 個，在真實的 App 畫面上操作。
 3. **建置驗證**：從 GitHub 重新 clone，分別做 Debug 與 Release 建置。
 4. **獨立驗證**：用 Python 從頭重算報告數字；檢查 PDF 是否嵌入字型；人工檢視截圖與 PDF 每一頁。
 5. **需求稽核**：交給一個沒參與實作的 agent，逐條對照需求和程式碼。
 
-稽核找到 9 個問題（中 3、低 6），另外有 1 個小問題。其中 1 個是誤報（無法重現），其餘都已修正，或補充文件說明。每個修正都有對應的測試，這次全部通過。
+第一輪稽核找到 9 個問題（中 3、低 6），另外有 1 個小問題。其中 1 個是誤報（無法重現），其餘都已修正，或補充文件說明。
+
+第二輪人工審查又找到 3 個問題，都已修正：提醒只排 7 天、可以輸入未來時間、跨日會關掉正在填的表單（這一個是第一輪修正時引入的）。
+
+每個修正都有對應的測試，這次全部通過。
 
 **目前所有驗收標準都有自動化測試涵蓋並通過。** 只有「通知確實在設定時間跳出」這一項，因為要等實際時間經過，無法自動化。這部分改由規劃邏輯的測試加上 README 的手動步驟來涵蓋（見第 7 節）。
 
@@ -40,7 +44,7 @@ UI 測試前會先移除模擬器上的 App，確保系統會重新詢問通知�
 | 2 | 收縮壓 120、舒張壓 130 無法儲存並在欄位顯示錯誤；超出範圍無法儲存 | ✅ | `MeasurementValidatorTests`（含 6 組超出範圍的參數化案例與邊界值）、`MeasurementDraftTests.acceptance_120over130_cannotBeSaved`；UI 測試 `testInvalidValuesCannotBeSaved` 在畫面上看到「舒張壓必須低於收縮壓（120）」，表單也沒有關閉 |
 | 3 | 07:30 早上、19:59 晚上、10:00:01 其他，有單元測試 | ✅ | `SlotClassifierTests.classifiesByLocalTime`，共 11 組邊界值，包含 06:00:00、09:59:59、10:00:00、21:59:59、22:00:00 |
 | 4 | 同時段 3 筆只取前兩筆；1 筆標示「不足兩筆」，有單元測試 | ✅ | `SessionAggregatorTests`：輸入順序打亂時仍依時間排序取前兩筆；量測時間相同時排序固定；1 筆時標示不足 |
-| 5 | 當天早上已有兩筆後不再發早上提醒（測試或 README 步驟） | ✅ | `NotificationPlannerTests.twoMorningReadingsSuppressOnlyTodaysMorningReminder`、`ReminderSchedulerTests`（包含兩次重排重疊的競態測試）；README 附手動步驟 |
+| 5 | 當天早上已有兩筆後不再發早上提醒（測試或 README 步驟） | ✅ | `NotificationPlannerTests.twoMorningReadingsSuppressOnlyTodaysMorningReminder`、`ReminderSchedulerTests`（包含兩次重排重疊的競態測試）；排程涵蓋未來 30 天且不超過系統 64 則上限；README 附手動步驟 |
 | 6 | 拒絕通知權限後，新增、列表、報告正常，設定頁顯示權限提示 | ✅ | UI 測試 `testAppKeepsWorkingAfterDenyingNotifications`：自動按「不允許」→ 設定頁出現「通知權限已關閉」和「前往系統設定」→ 新增一筆 → 列表顯示 128/82。`ReminderSchedulerTests.deniedPermission…` 確認不排程也不拋錯 |
 | 7 | 趨勢圖近 14 天早晚兩組資料加 135/85 參考線；缺資料不畫成 0 | ✅ | `TrendBuilderTests`：缺資料的日子不產生點，線條在缺口處斷開；人工檢視截圖 `docs/screenshots/trend.png` |
 | 8 | 722 方格與實際資料一致，單元測試涵蓋三種狀態 | ✅ | `AdherenceCalculatorTests` 涵蓋完成、不足兩筆、缺，以及 7 天邊界和「其他」時段排除；截圖中 11/14 與範例資料一致 |
@@ -49,15 +53,15 @@ UI 測試前會先移除模擬器上的 App，確保系統會重新詢問通知�
 | 11 | 匯出再匯入同一份 JSON 筆數不變；匯入格式錯誤時顯示錯誤，既有資料不變 | ✅ | `BackupServiceTests`：匯出再匯入後筆數不變；壞掉的 JSON、缺欄位、版本不支援、其中一筆數值有誤時，都整份拒絕，資料筆數不變。`BackupDeduplicationTests` 涵蓋 4 種去重情境 |
 | 12 | 把量測時間從早上改到晚上，列表、達成度、趨勢圖、報告都跟著更新 | ✅ | `EditPropagationTests` 在同一份資料上驗證四個功能；UI 測試 `testEditingTimeFromMorningToEveningUpdatesEveryScreen` 在畫面上把 07:05 改成 20:05，列表改列為晚上、722 今天早晚都變成「不足兩筆」、報告的晚上時段數從 11 變 12 |
 | 13 | 「載入範例資料」：14 天、含缺漏與超標 | ✅ | `SampleDataFactoryTests`；Debug 設定頁有按鈕，也可用 `-loadSampleData` 啟動參數 |
-| 14 | 單元測試至少 15 個，全數通過 | ✅ | 60 個（另有 5 個 UI 測試），全數通過 |
+| 14 | 單元測試至少 15 個，全數通過 | ✅ | 64 個（另有 6 個 UI 測試），全數通過 |
 
 ## 4. 功能需求檢核
 
 | 需求 | 結果 | 說明 |
 |---|---|---|
-| 新增量測欄位（三項數值、時間預設現在、手臂、備註） | ✅ | `MeasurementFormView` |
+| 新增量測欄位（三項數值、時間預設現在、手臂、備註） | ✅ | `MeasurementFormView`；量測時間不可晚於現在（容許 5 分鐘時鐘誤差） |
 | 時段歸類、含起點不含終點 | ✅ | 以量測當地的時區判斷，出國量測不會在回國後被重新歸類（`classificationUsesMeasurementTimeZoneNotDevice`） |
-| 預設提醒 07:00 / 20:00、可調整 | ✅ | `defaultsToMorning0700AndEvening2000ForSevenDays`、`customTimesAreUsed` |
+| 預設提醒 07:00 / 20:00、可調整 | ✅ | `defaultsToMorning0700AndEvening2000ForThirtyDays`、`customTimesAreUsed` |
 | 列表依日期分組、新的在上、顯示早晚平均 | ✅ | `DailyGroupingTests` |
 | 回診報告：日期區間、三種平均、超標比例、每日明細、分享 | ✅ | 見驗收標準第 9、10 項 |
 | 編輯與刪除、刪除前確認 | ✅ | UI 測試 `testDeleteRequiresConfirmation`：取消不會刪除，確認後才刪除 |
@@ -84,7 +88,15 @@ UI 測試前會先移除模擬器上的 App，確保系統會重新詢問通知�
 
 ## 6. 發現的問題與處置
 
-**稽核發現的問題**
+**第二輪人工審查發現的問題**
+
+| # | 問題 | 嚴重度 | 處置 | 回歸測試 |
+|---|---|---|---|---|
+| A | 提醒只排未來 7 天。會連續多天不開 App 的病人正是最需要提醒的人，提醒卻在第 8 天起消失 | 高 | 已修正：改排 30 天（60 則，在 iOS 64 則上限內，涵蓋回診前兩週） | `defaultsToMorning0700AndEvening2000ForThirtyDays`、`neverExceedsTheSystemPendingNotificationLimit` |
+| B | 可以輸入未來的量測時間。轉錯日期滾輪會抑制明天的提醒、讓 722 格子預先變成完成、讓報告出現還沒發生的量測 | 中 | 已修正：日期選擇器只能選到現在；驗證時容許 5 分鐘時鐘誤差，新增、編輯、匯入都檢查 | `measuredTimeMayBeUpToFiveMinutesAhead`、`futureMeasuredTimeCannotBeSaved`、`futureMeasurementRejectsTheFile` |
+| C | 跨過午夜時正在填的表單被關閉、輸入的資料消失，報告選好的區間也被重設。原因是第一輪修正 #6 時用了 `.id(dayToken)` 重建整個畫面 | 中 | 已修正：改以 Environment 傳遞「今天」，只有 722 和趨勢圖重新計算 | UI 測試 `testDayChangeKeepsOpenFormAndTypedValues`：修正前失敗（表單被關閉），修正後通過 |
+
+**第一輪稽核發現的問題**
 
 | # | 問題 | 嚴重度 | 處置 | 回歸測試 |
 |---|---|---|---|---|
@@ -93,7 +105,7 @@ UI 測試前會先移除模擬器上的 App，確保系統會重新詢問通知�
 | 3 | 備註沒有長度上限，極長的備註會讓 PDF 單列高過一頁而被截斷 | 中低 | 已修正：備註上限 200 字，表單和匯入都會檢查 | `noteLongerThanLimitIsRejected`、`overlongNoteRejectsTheFile`、`maximumLengthNoteIsRenderedCompletely` |
 | 4 | 夏令時間結束當天，提醒時間可能差一小時 | 低 | **無法重現（誤報）**：還原成舊寫法後測試仍然通過，Foundation 本來就照牆上時鐘計算。仍改用語意比較清楚的 `date(bySettingHour:)` | `daylightSavingEndDayStillSchedulesMorningReminder` |
 | 5 | 趨勢圖 Y 軸下限固定在 50，舒張壓 30–49 會超出繪圖範圍 | 低 | 已修正：下限依資料動態調整 | 人工檢視 |
-| 6 | App 跨過午夜仍開著時，722、趨勢圖和報告的「今天」不會更新 | 低 | 已修正：監聽換日事件，重建各分頁並重排提醒 | 人工檢視（程式碼審查） |
+| 6 | App 跨過午夜仍開著時，722、趨勢圖和報告的「今天」不會更新 | 低 | 已修正：監聽換日事件並重排提醒。最初的做法會關閉表單，見上方 C，已改為 Environment 傳遞 | UI 測試 `testDayChangeKeepsOpenFormAndTypedValues` |
 | 7 | 授權通知後要靠 App 進入背景再回來才會重排 | 低 | 已修正：授權後會主動觸發重排 | `requestingPermissionBumpsAuthorizationVersion` |
 | 8 | README 的 UI 測試數量、啟動參數說明和實際不符 | 低 | 已更新 README | — |
 | 9 | UI 測試寫死中文的「不允許」 | 低 | 已修正：同時支援中英文 | UI 測試 |
@@ -105,6 +117,8 @@ UI 測試前會先移除模擬器上的 App，確保系統會重新詢問通知�
 - 在這個 iOS 版本，確認對話框以 popover 呈現，沒有「取消」按鈕，要點對話框外面才會關閉。
 - `LabeledContent` 會把標題和值合併成一個無障礙元素，例如「晚上平均、11 個時段」。
 - 測試已改為比對實際的元素結構。
+
+**C 的重現方式**：新增 Debug 啟動參數 `-postDayChangeAfter <秒>`，讓 App 在指定秒數後收到換日事件。UI 測試開著新增表單並輸入數值後等待換日：在舊程式碼上表單被關閉、測試失敗；改用 Environment 後通過。
 
 ## 7. 未涵蓋的範圍與風險
 
@@ -119,28 +133,28 @@ UI 測試前會先移除模擬器上的 App，確保系統會重新詢問通知�
 
 ## 8. 測試案例清單
 
-### 單元測試（60 個，16 個 suite）
+### 單元測試（64 個，16 個 suite）
 
 | Suite | 數量 | 測試 |
 |---|---|---|
-| MeasurementValidatorTests | 6 | validValuesProduceNoErrors、systolicNotGreaterThanDiastolicFlagsDiastolic、equalSystolicAndDiastolicIsRejected、outOfRangeValueFlagsItsField（6 組）、boundaryValuesAreAccepted、missingValuesAreReportedPerField |
-| MeasurementDraftTests | 6 | acceptance_120over130_cannotBeSaved、nonNumericInputIsReportedOnThatField、whitespaceAroundNumbersIsTolerated、decimalInputAsksForWholeNumber、noteLongerThanLimitIsRejected、slotPreviewFollowsEditedTime |
+| MeasurementValidatorTests | 7 | validValuesProduceNoErrors、systolicNotGreaterThanDiastolicFlagsDiastolic、equalSystolicAndDiastolicIsRejected、outOfRangeValueFlagsItsField（6 組）、boundaryValuesAreAccepted、measuredTimeMayBeUpToFiveMinutesAhead、missingValuesAreReportedPerField |
+| MeasurementDraftTests | 7 | acceptance_120over130_cannotBeSaved、nonNumericInputIsReportedOnThatField、whitespaceAroundNumbersIsTolerated、decimalInputAsksForWholeNumber、noteLongerThanLimitIsRejected、futureMeasuredTimeCannotBeSaved、slotPreviewFollowsEditedTime |
 | SlotClassifierTests | 3 | classifiesByLocalTime（11 組）、classificationUsesMeasurementTimeZoneNotDevice、localDayArithmeticCrossesMonthBoundary |
 | SessionAggregatorTests | 5 | threeReadingsAverageOnlyFirstTwoByMeasuredTime、singleReadingIsAveragedButMarkedInsufficient、sameDaySameSlotIsOneSessionDifferentSlotsAreSeparate、identicalMeasuredTimeIsOrderedByCreationThenStable、thresholdUsesSessionAverageAndIsInclusive |
 | DailyGroupingTests | 4 | groupsByDayNewestFirstWithSlotAverages、thirdReadingIsMarkedNotCounted、otherSlotReadingsAreNeverCounted、editingTimeFromMorningToEveningMovesItBetweenSessions |
 | AdherenceCalculatorTests | 2 | coversThreeStatesAndLastSevenDaysIncludingToday、emptyDataIsAllMissing |
 | TrendBuilderTests | 3 | missingDayHasNoPointAndBreaksTheLine、consecutiveDaysShareTheSameSeries、onlyLastFourteenDaysAndTrackedSlotsAreIncluded |
-| NotificationPlannerTests | 7 | defaultsToMorning0700AndEvening2000ForSevenDays、twoMorningReadingsSuppressOnlyTodaysMorningReminder、singleReadingStillGetsReminded、pastReminderTimesAreNotScheduled、customTimesAreUsed、daylightSavingEndDayStillSchedulesMorningReminder、reminderTimeIsClampedIntoItsSlot |
+| NotificationPlannerTests | 8 | defaultsToMorning0700AndEvening2000ForThirtyDays、neverExceedsTheSystemPendingNotificationLimit、twoMorningReadingsSuppressOnlyTodaysMorningReminder、singleReadingStillGetsReminded、pastReminderTimesAreNotScheduled、customTimesAreUsed、daylightSavingEndDayStillSchedulesMorningReminder、reminderTimeIsClampedIntoItsSlot |
 | ReminderSchedulerTests | 4 | deniedPermissionSchedulesNothingAndDoesNotThrow、authorizedReplacesPreviousRemindersWithNewPlan、overlappingReschedulesEndWithTheLatestPlan、requestingPermissionBumpsAuthorizationVersion |
 | ReportCalculatorTests | 4 | averagesMatchHandCalculation、aboveThresholdRatioMatchesHandCalculation、dailyDetailListsEveryDayInRangeIncludingOtherReadings、emptyRangeHasNoAveragesOrRatio |
 | PDFReportRendererTests | 3 | pdfIsA4AndContainsChineseSummary、longTablesSpanPagesWithoutDroppingRows、maximumLengthNoteIsRenderedCompletely |
-| BackupServiceTests | 6 | exportThenImportSameFileKeepsCount、importIntoNewDeviceRestoresAllFieldsIncludingTimeZone、malformedFileThrowsAndLeavesExistingDataUntouched、oneInvalidRecordRejectsTheWholeFile、overlongNoteRejectsTheFile、unsupportedSchemaVersionIsRejected |
+| BackupServiceTests | 7 | exportThenImportSameFileKeepsCount、importIntoNewDeviceRestoresAllFieldsIncludingTimeZone、malformedFileThrowsAndLeavesExistingDataUntouched、oneInvalidRecordRejectsTheWholeFile、overlongNoteRejectsTheFile、futureMeasurementRejectsTheFile、unsupportedSchemaVersionIsRejected |
 | BackupDeduplicationTests | 4 | sameIDIsDuplicate、sameContentWithDifferentIDIsDuplicate、differentArmOrValueIsNotDuplicate、duplicatesInsideTheSameFileAreInsertedOnce |
 | EditPropagationTests | 1 | movingReadingFromMorningToEveningUpdatesEveryFeature |
 | SampleDataFactoryTests | 1 | coversFourteenDaysWithGapsHighValuesAndEdgeCases |
 | SampleReportExportTests | 1 | exportSampleReport（只在設定 `SAMPLE_PDF_PATH` 時執行，平時略過） |
 
-### UI 測試（5 個）
+### UI 測試（6 個）
 
 | 測試 | 執行時間 | 驗證內容 |
 |---|---|---|
@@ -148,7 +162,8 @@ UI 測試前會先移除模擬器上的 App，確保系統會重新詢問通知�
 | PermissionDeniedUITests.testInvalidValuesCannotBeSaved | 13.6 秒 | 120/130 顯示錯誤且無法儲存 |
 | FeatureFlowUITests.testDeleteRequiresConfirmation | 17.0 秒 | 刪除前需確認；取消不刪除、確認後才刪除 |
 | FeatureFlowUITests.testEditingTimeFromMorningToEveningUpdatesEveryScreen | 25.8 秒 | 改時間後列表、722、報告都更新 |
-| FeatureFlowUITests.testReportPDFCanBeSavedToFiles | 20.3 秒 | 產生 PDF → 分享 → 儲存到「檔案」 |
+| FeatureFlowUITests.testReportPDFCanBeSavedToFiles | 20.5 秒 | 產生 PDF → 分享 → 儲存到「檔案」 |
+| DayChangeUITests.testDayChangeKeepsOpenFormAndTypedValues | 18.7 秒 | 跨過午夜時正在填的表單不會關閉、輸入的數值保留 |
 
 ## 9. 重現方式
 
@@ -165,4 +180,4 @@ xcodebuild build -project BPDiary.xcodeproj -scheme BPDiary \
   -configuration Release -destination 'generic/platform=iOS Simulator'
 ```
 
-全部測試約需 100 秒，其中 UI 測試約占 95 秒。
+全部測試約需 125 秒，其中 UI 測試約占 116 秒。
