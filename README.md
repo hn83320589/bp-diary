@@ -14,7 +14,7 @@
 
 **載入範例資料**（僅 Debug 建置）：`設定` →「開發者工具」→「載入範例資料」。會以今天為基準產生 14 天資料，內容包含整天缺漏、單筆時段、三筆時段、超標值與「其他」時段。**載入前會清除現有資料。**
 
-啟動參數（Debug，供截圖與驗證使用）：
+啟動參數（供截圖與自動化測試使用；只有 `-loadSampleData` 限 Debug 建置）：
 
 | 參數 | 作用 |
 |---|---|
@@ -29,9 +29,10 @@ xcodebuild test -project BPDiary.xcodeproj -scheme BPDiary \
   -destination 'platform=iOS Simulator,name=iPhone 17'
 ```
 
-- **單元測試**（Swift Testing）：52 個，位於 `BPDiaryTests/`。其中 `SampleReportExportTests` 平時會略過，只在產生範例 PDF 時執行。
-- **UI 測試**（XCTest）：2 個，位於 `BPDiaryUITests/`。內容是拒絕通知權限後的流程，以及不合理數值無法儲存。
+- **單元測試**（Swift Testing）：60 個，位於 `BPDiaryTests/`。其中 `SampleReportExportTests` 平時會略過，只在產生範例 PDF 時執行。
+- **UI 測試**（XCTest）：5 個，位於 `BPDiaryUITests/`。涵蓋：拒絕通知權限後仍可使用、不合理數值無法儲存、刪除前需確認、把時間從早上改到晚上後各畫面更新、PDF 經分享選單存到「檔案」。
   執行前請先移除模擬器上的 App，讓系統重新詢問通知權限：`xcrun simctl uninstall booted com.example.bpdiary`。
+- 完整測試結果見 [`docs/TEST_REPORT.md`](docs/TEST_REPORT.md)。
 
 重新產生範例 PDF：
 
@@ -71,7 +72,7 @@ TEST_RUNNER_SAMPLE_PDF_PATH=$PWD/docs/sample-report.pdf xcodebuild test \
 ### 時段平均與 722 達成度
 
 - 同一天、同一時段的量測視為一個時段，依**量測時間**排序後取**前兩筆**平均。量測時間相同時，再依建立時間、id 排序，確保結果固定。
-- 只有一筆時照樣計算，但標示「不足兩筆」。第三筆以後保留在紀錄中，列表會標示「未列入平均」。
+- 只有一筆時照樣計算，但標示「不足兩筆」。第三筆以後保留在紀錄中，列表會標示「未列入平均」；「其他」時段的量測在列表中一律標示「未列入平均」。
 - 722 達成度方格是**最近 7 天（含今天）× 早晚**，每格狀態為：完成（≥ 2 筆）、不足兩筆（1 筆）、缺（0 筆）。
 - 「其他」時段的量測不列入時段平均、達成度、趨勢圖與報告統計，只出現在列表和報告的明細中。
 
@@ -86,7 +87,8 @@ TEST_RUNNER_SAMPLE_PDF_PATH=$PWD/docs/sample-report.pdf xcodebuild test \
 ### 提醒通知
 
 - 預設早上 07:00、晚上 20:00，可在設定頁調整。可選的時間限制在對應時段內（早上 06:00–09:59、晚上 18:00–21:59），避免提醒後量到的資料不屬於該時段。
-- 系統的重複通知無法「只跳過某一天」，所以 App 會排定**未來 7 天的單次通知**。每次新增、編輯、刪除量測、修改提醒時間，或 App 回到前景時，都會整批重排；**當天該時段已有兩筆量測就不排**。
+- 系統的重複通知無法「只跳過某一天」，所以 App 會排定**未來 7 天的單次通知**。每次新增、編輯、刪除量測、修改提醒時間、取得通知權限、跨過午夜，或 App 回到前景時，都會整批重排；**當天該時段已有兩筆量測就不排**。
+- 重排會依序執行：前一次還沒完成時，新的重排會等它結束才開始。這樣可以避免兩次重排交錯，讓已有兩筆的時段又被加回提醒。
 - 通知以裝置當地時間觸發，出國時也會在當地的早上和晚上提醒。
 - 拒絕通知權限時，其他功能照常運作，設定頁會顯示開啟方式和「前往系統設定」按鈕。
 
@@ -134,12 +136,13 @@ TEST_RUNNER_SAMPLE_PDF_PATH=$PWD/docs/sample-report.pdf xcodebuild test \
 | 3 筆只取前兩筆；1 筆標示不足兩筆 | `SessionAggregatorTests` |
 | 早上已有兩筆後不再提醒 | `NotificationPlannerTests`、`ReminderSchedulerTests`、上方的手動步驟 |
 | 拒絕通知權限後功能正常、設定頁有提示 | UI 測試 `testAppKeepsWorkingAfterDenyingNotifications` |
+| 刪除前需確認 | UI 測試 `testDeleteRequiresConfirmation` |
 | 趨勢圖缺資料不畫成 0，並有 135/85 參考線 | `TrendBuilderTests`（缺資料的日子沒有點，線條在缺口斷開） |
 | 722 方格三種狀態 | `AdherenceCalculatorTests` |
 | 報告平均與超標比例和手算一致 | `ReportCalculatorTests`（手算過程寫在檔案註解中） |
-| PDF 中文正常、表格不截斷 | `PDFReportRendererTests`（擷取中文文字、30 天資料跨頁後最後一列仍存在） |
+| PDF 中文正常、表格不截斷 | `PDFReportRendererTests`（擷取中文文字、30 天資料跨頁後最後一列仍存在、最長備註完整呈現）；UI 測試 `testReportPDFCanBeSavedToFiles` |
 | 匯出再匯入筆數不變；格式錯誤時資料不變 | `BackupServiceTests`、`BackupDeduplicationTests` |
-| 時間從早上改到晚上，各功能都跟著更新 | `EditPropagationTests`、`DailyGroupingTests` |
+| 時間從早上改到晚上，各功能都跟著更新 | `EditPropagationTests`、`DailyGroupingTests`；UI 測試 `testEditingTimeFromMorningToEveningUpdatesEveryScreen` |
 | 範例資料（14 天、含缺漏與超標） | `SampleDataFactoryTests` |
 
 ## 專案結構
@@ -166,6 +169,7 @@ BPDiaryUITests/ UI 測試（XCTest）
 - 報告的日期區間以量測當地日期篩選；PDF 中如果某筆量測的時區和產生報告時不同，會在備註標示量測地時區。
 - 匯入只會新增，不會更新已存在的量測；兩邊同 id 但內容不同時，以手機上既有的資料為準。
 - 刪除量測無法復原，也沒有垃圾桶。
+- 備註上限 200 字。這是為了確保 PDF 中單一列不會高過一頁而被截斷；超過上限的備份檔會被整份拒絕。
 - 資料只存在本機，刪除 App 會遺失資料，請定期匯出備份。
 - 未提供 App 圖示、iPad 版面與橫向畫面。
 - UI 測試需要在「尚未詢問過通知權限」的模擬器上執行。
