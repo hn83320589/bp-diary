@@ -11,6 +11,12 @@ enum Formatters {
         return "\(String(format: "%04d/%02d/%02d", day.year, day.month, day.day))（\(weekday)）"
     }
 
+    /// 三（週三的簡寫）
+    static func weekday(_ day: LocalDay) -> String {
+        let utc = TimeZone(identifier: "UTC")!
+        return formatter("EEEEE", timeZone: utc).string(from: day.startDate(in: utc))
+    }
+
     /// 10/14
     static func shortDay(_ day: LocalDay) -> String {
         "\(day.month)/\(day.day)"
