@@ -40,7 +40,8 @@ enum NotificationPlanner {
             let day = today.adding(days: offset)
             return TimeSlot.tracked.compactMap { slot -> PlannedReminder? in
                 let time = settings.time(for: slot)
-                let fireDate = calendar.date(byAdding: .minute, value: time.minutes, to: day.startDate(in: timeZone))!
+                // 以「設定時、分」而非「當天 0 點加分鐘數」計算，夏令時間切換當天才不會差一小時。
+                let fireDate = calendar.date(bySettingHour: time.hour, minute: time.minute, second: 0, of: day.startDate(in: timeZone))!
                 guard fireDate > now else { return nil }
                 let count = sessions[SessionKey(day: day, slot: slot)]?.readings.count ?? 0
                 guard count < 2 else { return nil }

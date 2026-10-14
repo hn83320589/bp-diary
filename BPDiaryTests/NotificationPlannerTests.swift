@@ -55,6 +55,20 @@ struct NotificationPlannerTests {
         #expect(reminders[1].time == TimeOfDay(hour: 21, minute: 15))
     }
 
+    @Test func daylightSavingEndDayStillSchedulesMorningReminder() throws {
+        // 溫哥華 2026-11-01 02:00 結束夏令時間，當天 00:00 到 07:00 實際是 8 小時。
+        let vancouver = TimeZone(identifier: "America/Vancouver")!
+        let reminders = NotificationPlanner.plan(
+            readings: [],
+            settings: ReminderSettings(),
+            now: TestSupport.date("2026-11-01 06:30:00", in: vancouver),
+            timeZone: vancouver
+        )
+        let first = try #require(reminders.first)
+        #expect(first.day == LocalDay(year: 2026, month: 11, day: 1))
+        #expect(first.slot == .morning)
+    }
+
     @Test func reminderTimeIsClampedIntoItsSlot() {
         #expect(ReminderSettings.clamp(TimeOfDay(hour: 11, minute: 0), to: .morning) == TimeOfDay(hour: 9, minute: 59))
         #expect(ReminderSettings.clamp(TimeOfDay(hour: 5, minute: 0), to: .morning) == TimeOfDay(hour: 6, minute: 0))
@@ -86,19 +100,55 @@ struct ReminderSchedulerTests {
         #expect(center.added.contains("reminder-2026-10-14-evening"))
         #expect(center.added.count == 13)
     }
+
+    @Test func overlappingReschedulesEndWithTheLatestPlan() async throws {
+        // 情境：存第一筆時開始重排，尚未排完就存了第二筆。最後不應留下今天早上的提醒。
+        let center = FakeNotificationCenter(status: .authorized)
+        let scheduler = ReminderScheduler(center: center)
+        let now = TestSupport.date("2026-10-14 06:35:00")
+        let first = [TestSupport.reading("2026-10-14 06:30:00", 120, 80)]
+        let second = first + [TestSupport.reading("2026-10-14 06:32:00", 122, 80)]
+
+        let older = Task { try await scheduler.reschedule(readings: first, settings: ReminderSettings(), now: now, timeZone: TestSupport.taipei) }
+        let newer = Task { try await scheduler.reschedule(readings: second, settings: ReminderSettings(), now: now, timeZone: TestSupport.taipei) }
+        try await older.value
+        try await newer.value
+
+        #expect(!center.added.contains("reminder-2026-10-14-morning"))
+        #expect(center.added.count == 13)
+    }
+
+    @Test func requestingPermissionBumpsAuthorizationVersion() async {
+        let center = FakeNotificationCenter(status: .notDetermined)
+        center.grantsOnRequest = true
+        let scheduler = ReminderScheduler(center: center)
+        await scheduler.requestAuthorizationIfNeeded()
+        #expect(scheduler.authorizationVersion == 1)
+        #expect(await scheduler.authorization() == .authorized)
+    }
 }
 
 @MainActor
 final class FakeNotificationCenter: NotificationCenterClient {
     var status: ReminderAuthorization
     var added: [String] = []
+    var grantsOnRequest = false
 
     init(status: ReminderAuthorization) {
         self.status = status
     }
 
     func authorization() async -> ReminderAuthorization { status }
-    func requestAuthorization() async throws -> Bool { status == .authorized }
-    func removePendingReminders() async { added.removeAll { $0.hasPrefix(NotificationPlanner.identifierPrefix) } }
-    func add(_ reminder: PlannedReminder) async throws { added.append(reminder.identifier) }
+    func requestAuthorization() async throws -> Bool {
+        if grantsOnRequest { status = .authorized }
+        return status == .authorized
+    }
+    func removePendingReminders() async {
+        await Task.yield()
+        added.removeAll { $0.hasPrefix(NotificationPlanner.identifierPrefix) }
+    }
+    func add(_ reminder: PlannedReminder) async throws {
+        await Task.yield()
+        if !added.contains(reminder.identifier) { added.append(reminder.identifier) }
+    }
 }

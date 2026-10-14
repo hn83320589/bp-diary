@@ -26,6 +26,19 @@ struct MeasurementDraftTests {
         #expect(draft(" 120 ", "80", "70 ").isValid)
     }
 
+    @Test func decimalInputAsksForWholeNumber() {
+        let errors = draft("120.5", "80", "70").errors
+        #expect(errors[.systolic] == "收縮壓請輸入整數")
+    }
+
+    @Test func noteLongerThanLimitIsRejected() {
+        var draft = draft("120", "80", "70")
+        draft.note = String(repeating: "量", count: MeasurementValidator.noteLimit)
+        #expect(draft.isValid)
+        draft.note += "量"
+        #expect(draft.errors[.note] != nil)
+    }
+
     @Test func slotPreviewFollowsEditedTime() {
         var draft = draft("120", "80", "70")
         #expect(draft.slot == .morning)

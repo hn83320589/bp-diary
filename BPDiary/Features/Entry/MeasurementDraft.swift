@@ -26,11 +26,20 @@ struct MeasurementDraft: Equatable {
     }
 
     var errors: [MeasurementField: String] {
-        MeasurementValidator.validate(
+        var errors = MeasurementValidator.validate(
             systolic: Self.number(systolic),
             diastolic: Self.number(diastolic),
             pulse: Self.number(pulse)
         )
+        // 有輸入但不是整數（例如 120.5），提示要輸入整數，而不是「請輸入」。
+        for (field, text, name) in [(MeasurementField.systolic, systolic, "收縮壓"), (.diastolic, diastolic, "舒張壓"), (.pulse, pulse, "脈搏")]
+        where !text.trimmingCharacters(in: .whitespaces).isEmpty && Self.number(text) == nil {
+            errors[field] = "\(name)請輸入整數"
+        }
+        if let message = MeasurementValidator.validate(note: note.trimmingCharacters(in: .whitespacesAndNewlines)) {
+            errors[.note] = message
+        }
+        return errors
     }
 
     var isValid: Bool { errors.isEmpty }

@@ -82,6 +82,16 @@ struct BackupServiceTests {
         #expect(try count(target) == 0, "格式錯誤時不得匯入任何一筆")
     }
 
+    @Test func overlongNoteRejectsTheFile() throws {
+        let file = BackupFile(exportedAt: .now, measurements: [BackupRecord(
+            id: UUID(), systolic: 120, diastolic: 80, pulse: 70, measuredAt: .now, timeZone: "Asia/Taipei",
+            arm: .left, note: String(repeating: "字", count: MeasurementValidator.noteLimit + 1), createdAt: .now
+        )])
+        #expect(throws: BackupError.self) {
+            try BackupCodec.decode(try BackupCodec.encode(file))
+        }
+    }
+
     @Test func unsupportedSchemaVersionIsRejected() throws {
         let json = #"{"schemaVersion":99,"exportedAt":"2026-10-14T00:00:00.000Z","measurements":[]}"#
         #expect(throws: BackupError.unsupportedVersion(99)) {

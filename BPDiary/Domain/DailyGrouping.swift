@@ -21,7 +21,7 @@ struct DayGroup: Identifiable, Sendable {
 enum DailyGrouping {
     static func groups(from readings: [Reading]) -> [DayGroup] {
         let sessions = SessionAggregator.sessionsByKey(from: readings)
-        let countedIDs = Set(sessions.values.flatMap { $0.counted.map(\.id) })
+        let countedIDs = Set(sessions.values.filter { $0.slot != .other }.flatMap { $0.counted.map(\.id) })
 
         return Dictionary(grouping: readings, by: \.localDay)
             .map { day, dayReadings in

@@ -31,6 +31,15 @@ struct DailyGroupingTests {
         #expect(notCounted.first?.reading.systolic == 160)
     }
 
+    @Test func otherSlotReadingsAreNeverCounted() throws {
+        let readings = [
+            TestSupport.reading("2026-10-14 13:00:00", 120, 80),
+            TestSupport.reading("2026-10-14 13:05:00", 122, 80),
+        ]
+        let rows = try #require(DailyGrouping.groups(from: readings).first).rows
+        #expect(rows.allSatisfy { !$0.isCounted })
+    }
+
     @Test func editingTimeFromMorningToEveningMovesItBetweenSessions() throws {
         var edited = TestSupport.reading("2026-10-14 07:00:00", 150, 95)
         let other = TestSupport.reading("2026-10-14 07:10:00", 120, 80)

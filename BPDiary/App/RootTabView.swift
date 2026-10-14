@@ -1,3 +1,4 @@
+import Combine
 import SwiftData
 import SwiftUI
 
@@ -8,6 +9,8 @@ enum AppTab: String {
 struct RootTabView: View {
     @State private var selection: AppTab = LaunchOptions.initialTab
     @State private var scheduler = ReminderScheduler()
+    /// 跨過午夜時更換，讓「今天」相關的畫面（722、趨勢、報告預設區間）重新計算。
+    @State private var dayToken = Date.now
 
     @Query private var measurements: [BPMeasurement]
     @Environment(\.scenePhase) private var scenePhase
@@ -32,6 +35,10 @@ struct RootTabView: View {
                 .tabItem { Label("設定", systemImage: "gearshape") }
                 .tag(AppTab.settings)
         }
+        .id(dayToken)
+        .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged).receive(on: RunLoop.main)) { _ in
+            dayToken = .now
+        }
         .task {
             await scheduler.requestAuthorizationIfNeeded()
         }
@@ -40,7 +47,9 @@ struct RootTabView: View {
             readings: measurements.map(\.reading),
             morningMinutes: morningMinutes,
             eveningMinutes: eveningMinutes,
-            isActive: scenePhase == .active
+            isActive: scenePhase == .active,
+            authorizationVersion: scheduler.authorizationVersion,
+            day: dayToken
         )) {
             guard scenePhase == .active else { return }
             await scheduler.rescheduleLoggingErrors(
@@ -56,4 +65,6 @@ private struct ReminderTrigger: Hashable {
     let morningMinutes: Int
     let eveningMinutes: Int
     let isActive: Bool
+    let authorizationVersion: Int
+    let day: Date
 }

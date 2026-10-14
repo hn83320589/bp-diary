@@ -48,6 +48,8 @@ struct TrendChart: View {
         let firstDay = today.adding(days: -(TrendBuilder.dayCount - 1)).startDate(in: timeZone)
         let lastDay = today.startDate(in: timeZone)
         let upper = max(170, (points.map(\.value).max() ?? 0) + 10)
+        // 舒張壓下限是 30，Y 軸下限需能容納低於 50 的時段平均。
+        let lower = min(50, ((points.map(\.value).min() ?? 50) - 10).rounded(.down))
 
         Chart {
             ForEach(points) { point in
@@ -71,7 +73,7 @@ struct TrendChart: View {
         }
         .chartForegroundStyleScale(domain: Self.colors.map(\.key), range: Self.colors.map(\.value))
         .chartXScale(domain: firstDay...lastDay, range: .plotDimension(padding: 12))
-        .chartYScale(domain: 50...upper)
+        .chartYScale(domain: lower...upper)
         .chartXAxis {
             AxisMarks(values: .stride(by: .day, count: 2)) { _ in
                 AxisGridLine()

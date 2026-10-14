@@ -81,6 +81,9 @@ enum BackupCodec {
             if let message = errors.values.sorted().first {
                 throw BackupError.invalidRecord(index: index, reason: message)
             }
+            if let message = MeasurementValidator.validate(note: record.note) {
+                throw BackupError.invalidRecord(index: index, reason: message)
+            }
             if TimeZone(identifier: record.timeZone) == nil {
                 throw BackupError.invalidRecord(index: index, reason: "未知的時區 \(record.timeZone)")
             }

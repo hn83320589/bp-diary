@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 import os
 import UserNotifications
 
@@ -56,9 +57,16 @@ final class SystemNotificationCenter: NotificationCenterClient {
 }
 
 @MainActor
+@Observable
 final class ReminderScheduler {
     private static let logger = Logger(subsystem: "com.example.bpdiary", category: "reminders")
-    private let center: NotificationCenterClient
+    @ObservationIgnored private let center: NotificationCenterClient
+    /// 上一次重排。新的重排會等它完成才開始，避免兩次重排交錯，
+    /// 讓舊資料規劃的提醒（例如已量兩筆的時段）被加回去。
+    @ObservationIgnored private var lastReschedule: Task<Void, Error>?
+
+    /// 每次要求過權限就加一，畫面可據此重新排程。
+    private(set) var authorizationVersion = 0
 
     init(center: NotificationCenterClient? = nil) {
         self.center = center ?? SystemNotificationCenter()
@@ -75,6 +83,7 @@ final class ReminderScheduler {
         } catch {
             Self.logger.error("要求通知權限失敗：\(error.localizedDescription)")
         }
+        authorizationVersion += 1
     }
 
     /// 清掉舊的提醒後依最新資料重排。沒有權限時只清除、不排程。
@@ -84,13 +93,19 @@ final class ReminderScheduler {
         now: Date = .now,
         timeZone: TimeZone = .current
     ) async throws {
-        await center.removePendingReminders()
-        guard await center.authorization() == .authorized else { return }
-        let reminders = NotificationPlanner.plan(readings: readings, settings: settings, now: now, timeZone: timeZone)
-        for reminder in reminders {
-            try await center.add(reminder)
+        let previous = lastReschedule
+        let task = Task { [center] in
+            _ = await previous?.result
+            await center.removePendingReminders()
+            guard await center.authorization() == .authorized else { return }
+            let reminders = NotificationPlanner.plan(readings: readings, settings: settings, now: now, timeZone: timeZone)
+            for reminder in reminders {
+                try await center.add(reminder)
+            }
+            Self.logger.info("已排定 \(reminders.count) 則提醒")
         }
-        Self.logger.info("已排定 \(reminders.count) 則提醒")
+        lastReschedule = task
+        try await task.value
     }
 
     /// 給畫面使用：失敗時記錄錯誤。提醒失敗不應阻擋記錄功能。

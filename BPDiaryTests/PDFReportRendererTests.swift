@@ -29,6 +29,14 @@ struct PDFReportRendererTests {
         #expect(text.contains("100.0%"))
     }
 
+    @Test func maximumLengthNoteIsRenderedCompletely() throws {
+        let note = String(repeating: "血壓", count: MeasurementValidator.noteLimit / 2 - 2) + "結尾標記"
+        let readings = [TestSupport.reading("2026-10-14 07:00:00", 120, 80, note: note)]
+        let day = LocalDay(year: 2026, month: 10, day: 14)
+        let text = try #require(try render(readings, from: day, to: day).string).filter { !$0.isWhitespace }
+        #expect(text.contains("結尾標記"))
+    }
+
     @Test func longTablesSpanPagesWithoutDroppingRows() throws {
         let start = LocalDay(year: 2026, month: 9, day: 1)
         var readings: [Reading] = []

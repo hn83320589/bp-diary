@@ -50,9 +50,18 @@ struct MeasurementFormView: View {
                     }
                 }
 
-                Section("備註") {
+                Section {
                     TextField("例如：剛運動完、忘記吃藥", text: $draft.note, axis: .vertical)
                         .lineLimit(1...4)
+                    if let error = draft.errors[.note] {
+                        Label(error, systemImage: "exclamationmark.circle.fill")
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                    }
+                } header: {
+                    Text("備註")
+                } footer: {
+                    Text("\(draft.note.count) / \(MeasurementValidator.noteLimit)")
                 }
 
                 if case .edit = mode {
@@ -91,6 +100,7 @@ struct MeasurementFormView: View {
         case .systolic: draft.systolic
         case .diastolic: draft.diastolic
         case .pulse: draft.pulse
+        case .note: draft.note
         }
         guard showsErrors || !text.isEmpty else { return nil }
         return draft.errors[field]

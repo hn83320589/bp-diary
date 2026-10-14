@@ -4,12 +4,19 @@ enum MeasurementField: Hashable, Sendable {
     case systolic
     case diastolic
     case pulse
+    case note
 }
 
 enum MeasurementValidator {
     static let systolicRange = 60...260
     static let diastolicRange = 30...160
     static let pulseRange = 30...220
+    /// 備註上限。也確保 PDF 中單一列不會高過一頁而被截斷。
+    static let noteLimit = 200
+
+    static func validate(note: String) -> String? {
+        note.count > noteLimit ? "備註最多 \(noteLimit) 字（目前 \(note.count) 字）" : nil
+    }
 
     /// 回傳每個有問題欄位的錯誤訊息；空字典代表可以儲存。
     static func validate(systolic: Int?, diastolic: Int?, pulse: Int?) -> [MeasurementField: String] {
